@@ -1,0 +1,26 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+
+# Virtual envs
+.venv/
+venv/
+
+# Env files
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Python packaging
+*.egg-info/
+
+# Logs
+*.log
+
+# Ignore nested venv in subproject
+agent/.venv/
