@@ -35,7 +35,7 @@ class TestXVAPDFIntegrationSetup(unittest.TestCase):
 
         # Embeddings configuration
         cls.embeddings_provider = os.getenv("EMBEDDINGS_PROVIDER", "ollama")
-        cls.ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        cls.ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 
     @unittest.skipUnless(
         os.path.exists(

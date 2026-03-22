@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from ollama_utils import normalize_ollama_host
 
 # Configuration — set XVA_PDF_PATH env var to point to your copy of the book
 PDF_PATH = os.getenv(
@@ -32,7 +33,9 @@ DB_NAME = os.getenv("POSTGRES_DB", "postgres")
 
 # Embeddings
 EMBEDDINGS_PROVIDER = os.getenv("EMBEDDINGS_PROVIDER", "ollama")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_HOST = normalize_ollama_host(
+    os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+)
 
 
 def build_db_url() -> str:
@@ -110,7 +113,7 @@ from langchain_community.embeddings import OllamaEmbeddings
 # Step 2: Setup embeddings
 embeddings = OllamaEmbeddings(
     model="nomic-embed-text",
-    base_url="http://localhost:11434"
+    base_url="http://127.0.0.1:11434"
 )
 
 # Step 3: Create ingestor

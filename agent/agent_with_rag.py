@@ -5,6 +5,7 @@ from typing import Optional
 from agent import IntegratedAgent
 from langchain_core.messages import HumanMessage, SystemMessage
 from rag_retriever import RAGRetriever
+from ollama_utils import normalize_ollama_host
 
 
 class RAGAgent(IntegratedAgent):
@@ -50,7 +51,9 @@ class RAGAgent(IntegratedAgent):
 
                     embeddings = OllamaEmbeddings(
                         model="nomic-embed-text:latest",
-                        base_url=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+                        base_url=normalize_ollama_host(
+                            os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+                        ),
                     )
 
             try:

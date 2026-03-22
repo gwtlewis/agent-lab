@@ -53,7 +53,7 @@ cd /Users/lewisgong/code/agent-lab
 docker-compose up -d
 
 # Terminal 2: Verify Ollama (if not already running)
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 
 # Terminal 3: Run agent
 cd /Users/lewisgong/code/agent-lab/agent
@@ -66,7 +66,7 @@ python agent.py
 
 ```env
 LLM_PROVIDER=ollama
-OLLAMA_HOST=http://localhost:11434
+OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3:8b
 ```
 
@@ -137,7 +137,7 @@ docker-compose ps
 # Look for: pgvector-db ... Up
 
 # 2. Ollama running?
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 # Should return: {"models": [...]}
 
 # 3. Agent works?
@@ -151,7 +151,7 @@ python agent.py
 
 | Problem | Solution |
 |---------|----------|
-| "Connection refused" to Ollama | Check: `curl http://localhost:11434/api/tags` |
+| "Connection refused" to Ollama | Check: `curl http://127.0.0.1:11434/api/tags` |
 | "Connection refused" to PostgreSQL | Check: `docker-compose ps` and `docker-compose logs db` |
 | Agent won't start | Check: `python -c "from agent import IntegratedAgent; print('OK')"` |
 | Slow responses | Check CPU/RAM usage, consider smaller model |

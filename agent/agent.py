@@ -13,11 +13,14 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from ollama_utils import normalize_ollama_host
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+OLLAMA_BASE_URL = normalize_ollama_host(OLLAMA_HOST)
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
@@ -57,11 +60,11 @@ class IntegratedAgent:
     def _init_llm(self) -> Optional[Union[ChatOllama, ChatOpenAI]]:
         if self.provider == "ollama":
             try:
-                r = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=5)
+                r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
                 if OLLAMA_MODEL not in [m["name"] for m in r.json().get("models", [])]:
                     logger.warning("Model %s not found in Ollama", OLLAMA_MODEL)
                     return None
-                return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
+                return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL)
             except Exception as e:
                 logger.warning("Failed to connect to Ollama: %s", e)
                 return None
@@ -74,7 +77,7 @@ class IntegratedAgent:
     def verify_connection(self) -> bool:
         if self.provider == "ollama":
             try:
-                r = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=5)
+                r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
                 models = [m["name"] for m in r.json().get("models", [])]
                 print(f"✓ Connected to Ollama")
                 print(f"✓ Available models: {', '.join(models[:3])}")
@@ -149,7 +152,7 @@ class IntegratedAgent:
                 return int(env)
             # try to infer from available tags if possible (not always exposed)
             try:
-                r = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=5)
+                r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
                 for m in r.json().get("models", []):
                     if m.get("name") == OLLAMA_MODEL:
                         # some Ollama builds may expose `max_tokens` or similar

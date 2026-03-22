@@ -30,7 +30,7 @@ cd /Users/lewisgong/code/agent-lab/agent
 
 2. Verify Ollama models (if using Ollama provider):
 ```bash
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 ```
 
 Expected models:
@@ -46,7 +46,7 @@ Edit `.env` to select provider and configure LLM:
 
 ```bash
 LLM_PROVIDER=ollama
-OLLAMA_HOST=http://localhost:11434
+OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3:8b
 ```
 
@@ -301,7 +301,7 @@ assert type(agent_openai.llm).__name__ == "ChatOpenAI"
 **Ollama provider fails to connect:**
 ```bash
 # Check if Ollama is running and accessible
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 
 # If not running, start Ollama
 ollama serve
@@ -329,7 +329,7 @@ echo $OPENAI_API_KEY
 **Model not found error:**
 ```bash
 # List available models
-curl http://localhost:11434/api/tags | jq '.models[].name'
+curl http://127.0.0.1:11434/api/tags | jq '.models[].name'
 
 # Update .env with available model
 OLLAMA_MODEL=neural-chat:7b

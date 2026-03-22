@@ -203,7 +203,7 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
 EMBEDDINGS_PROVIDER=ollama  # or 'openai'
-OLLAMA_HOST=http://localhost:11434
+OLLAMA_HOST=http://127.0.0.1:11434
 ```
 
 ---

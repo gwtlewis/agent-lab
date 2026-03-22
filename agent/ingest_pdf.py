@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from ollama_utils import normalize_ollama_host
 
 # Load environment variables
 load_dotenv()
@@ -37,7 +38,9 @@ def get_embeddings_instance(provider: str = "ollama"):
     elif provider.lower() == "ollama":
         from langchain_ollama import OllamaEmbeddings
 
-        ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        ollama_host = normalize_ollama_host(
+            os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+        )
         return OllamaEmbeddings(model="nomic-embed-text:latest", base_url=ollama_host)
     else:
         raise ValueError(f"Unknown embeddings provider: {provider}")

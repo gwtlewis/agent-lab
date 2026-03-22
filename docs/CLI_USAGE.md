@@ -255,7 +255,7 @@ POSTGRES_DB=postgres
 EMBEDDINGS_PROVIDER=ollama
 
 # Ollama Configuration
-OLLAMA_HOST=http://localhost:11434
+OLLAMA_HOST=http://127.0.0.1:11434
 
 # OpenAI Configuration (optional)
 OPENAI_API_KEY=sk-your-api-key-here
@@ -355,7 +355,7 @@ psql -h localhost -U postgres -d postgres -c "SELECT 1"
 ### Ollama Not Found
 
 ```
-Error: Could not connect to Ollama server at http://localhost:11434
+Error: Could not connect to Ollama server at http://127.0.0.1:11434
 ```
 
 **Solution**:
@@ -367,7 +367,7 @@ ollama serve
 ollama pull nomic-embed-text
 
 # Test connection
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 ```
 
 ### OpenAI API Error

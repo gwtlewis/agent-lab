@@ -113,7 +113,7 @@ class TestRAGPipelineConfiguration(unittest.TestCase):
     @patch("langchain_ollama.OllamaEmbeddings")
     def test_embeddings_instance_ollama(self, mock_ollama):
         """Test Ollama embeddings instantiation"""
-        with patch.dict(os.environ, {"OLLAMA_HOST": "http://localhost:11434"}):
+        with patch.dict(os.environ, {"OLLAMA_HOST": "http://127.0.0.1:11434"}):
             embeddings = get_embeddings_instance("ollama")
             mock_ollama.assert_called_once()
             self.assertEqual(embeddings, mock_ollama.return_value)
@@ -138,7 +138,7 @@ class TestRAGAgentInitialization(unittest.TestCase):
 
     @patch("agent_with_rag.RAGRetriever")
     @patch("langchain_ollama.OllamaEmbeddings")
-    @patch.dict(os.environ, {"OLLAMA_HOST": "http://localhost:11434"})
+    @patch.dict(os.environ, {"OLLAMA_HOST": "http://127.0.0.1:11434"})
     def test_rag_agent_init_with_db_url(self, mock_embeddings, mock_retriever):
         """Test RAGAgent initialization with database URL"""
         db_url = "postgresql://postgres:postgres@localhost:5432/postgres"

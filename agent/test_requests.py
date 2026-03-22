@@ -7,7 +7,7 @@ import json
 
 import requests
 
-OLLAMA_HOST = "http://localhost:11434"
+OLLAMA_HOST = "http://127.0.0.1:11434"
 
 print("=" * 60)
 print("Testing Ollama Connection with requests library")

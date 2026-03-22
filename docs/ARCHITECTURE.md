@@ -98,13 +98,13 @@ docker-compose ps
 3. `nomic-embed-text:latest` - Alternative embeddings
 
 **Configuration**:
-- Host: `http://localhost:11434`
+- Host: `http://127.0.0.1:11434`
 - Default Model: `qwen3:8b`
 - API Endpoint: `/api/chat` (for chat) and `/api/tags` (for listing models)
 
 **Verification**:
 ```bash
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 ```
 
 ## 4. Python Agent Component
@@ -166,7 +166,7 @@ class IntegratedAgent:
 **Ollama Configuration** (default):
 ```env
 LLM_PROVIDER=ollama
-OLLAMA_HOST=http://localhost:11434
+OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3:8b
 OPENAI_API_KEY=sk-your-api-key-here  # unused when provider=ollama
 OPENAI_MODEL=gpt-4
@@ -282,7 +282,7 @@ Goodbye!
 docker-compose ps
 
 # 2. Ollama availability
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 
 # 3. Agent imports
 python -c "from agent import IntegratedAgent; print('OK')"
@@ -432,7 +432,7 @@ elif provider == "openai":
 ### Issue: "Connection refused" to Ollama
 ```bash
 # Check if Ollama is running
-curl http://localhost:11434/api/tags
+curl http://127.0.0.1:11434/api/tags
 
 # If not running
 ollama serve
@@ -448,7 +448,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 ### Issue: Model not found
 ```bash
 # List available models
-curl http://localhost:11434/api/tags | jq '.models[].name'
+curl http://127.0.0.1:11434/api/tags | jq '.models[].name'
 
 # Update .env with available model
 OLLAMA_MODEL=neural-chat:7b
@@ -509,7 +509,7 @@ python test_requests.py      # Direct API test
 python test_langchain_agent.py # Integration test
 
 # LLM
-curl http://localhost:11434/api/tags  # List Ollama models
+curl http://127.0.0.1:11434/api/tags  # List Ollama models
 ```
 
 ## 15. Configuration Summary
