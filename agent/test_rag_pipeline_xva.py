@@ -20,17 +20,36 @@ class TestXVAPDFIngestion(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test fixtures"""
-        cls.pdf_path = (
-            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf"
+        cls.pdf_path = os.getenv(
+            "XVA_PDF_PATH",
+            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
         )
         cls.db_url = "postgresql://postgres:postgres@localhost:5432/postgres"
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_pdf_file_exists(self):
         """Test that xVA PDF file exists"""
         self.assertTrue(
             os.path.exists(self.pdf_path), f"PDF file not found: {self.pdf_path}"
         )
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_pdf_file_is_readable(self):
         """Test that PDF file is readable"""
         self.assertTrue(
@@ -38,6 +57,15 @@ class TestXVAPDFIngestion(unittest.TestCase):
             f"PDF file is not readable: {self.pdf_path}",
         )
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_pdf_file_has_valid_size(self):
         """Test that PDF file has reasonable size"""
         size_mb = os.path.getsize(self.pdf_path) / (1024 * 1024)
@@ -47,7 +75,11 @@ class TestXVAPDFIngestion(unittest.TestCase):
     def test_pdf_filename_extraction(self):
         """Test extracting title from PDF path"""
         expected_title = "2015_The_xVA_Challenge-Jon Gregory"
-        actual_title = Path(self.pdf_path).stem
+        pdf_path = os.getenv(
+            "XVA_PDF_PATH",
+            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+        )
+        actual_title = Path(pdf_path).stem
         self.assertEqual(actual_title, expected_title)
 
 
@@ -78,7 +110,7 @@ class TestRAGPipelineConfiguration(unittest.TestCase):
         expected = "postgresql://admin:p@ss:word@db.example.com:5433/finance_db"
         self.assertEqual(url, expected)
 
-    @patch("langchain_community.embeddings.OllamaEmbeddings")
+    @patch("langchain_ollama.OllamaEmbeddings")
     def test_embeddings_instance_ollama(self, mock_ollama):
         """Test Ollama embeddings instantiation"""
         with patch.dict(os.environ, {"OLLAMA_HOST": "http://localhost:11434"}):
@@ -105,7 +137,7 @@ class TestRAGAgentInitialization(unittest.TestCase):
     """Test RAG Agent initialization with various configurations"""
 
     @patch("agent_with_rag.RAGRetriever")
-    @patch("langchain_community.embeddings.OllamaEmbeddings")
+    @patch("langchain_ollama.OllamaEmbeddings")
     @patch.dict(os.environ, {"OLLAMA_HOST": "http://localhost:11434"})
     def test_rag_agent_init_with_db_url(self, mock_embeddings, mock_retriever):
         """Test RAGAgent initialization with database URL"""

@@ -46,7 +46,7 @@ class RAGAgent(IntegratedAgent):
                 else:
                     import os
 
-                    from langchain_community.embeddings import OllamaEmbeddings
+                    from langchain_ollama import OllamaEmbeddings
 
                     embeddings = OllamaEmbeddings(
                         model="nomic-embed-text:latest",
@@ -198,4 +198,4 @@ class RAGAgent(IntegratedAgent):
         """Close connections"""
         if self.rag_retriever:
             self.rag_retriever.close()
-        super().close() if hasattr(super(), "close") else None
+        super().close()

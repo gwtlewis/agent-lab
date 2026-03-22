@@ -1,17 +1,21 @@
 """AI Agent with LangChain + OpenAI SDK Support"""
 
-import json
+import logging
 import os
 import sys
-from typing import List, Union
+from typing import List, Optional, Union
+from urllib.parse import quote_plus
 
 import requests
 from dotenv import load_dotenv
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_ollama import ChatOllama
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
@@ -27,35 +31,11 @@ DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 ENABLE_RAG = os.getenv("ENABLE_RAG", "false").lower() == "true"
 
-# Build database URL
-DB_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-
-class OllamaLLM:
-    """Custom LLM wrapper for Ollama using LangChain messages"""
-
-    def __init__(self, model: str, host: str):
-        self.model = model
-        self.host = host
-
-    def invoke(self, messages: List[BaseMessage]) -> str:
-        msgs = []
-        for msg in messages:
-            if isinstance(msg, HumanMessage):
-                msgs.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, AIMessage):
-                msgs.append({"role": "assistant", "content": msg.content})
-            else:
-                msgs.append({"role": "user", "content": str(msg.content)})
-
-        r = requests.post(
-            f"{self.host}/api/chat",
-            json={"model": self.model, "messages": msgs, "stream": False},
-            timeout=60,
-        )
-        if r.status_code != 200:
-            raise Exception(f"Error: {r.status_code}")
-        return r.json().get("message", {}).get("content", "No response")
+# Build database URL with URL-encoded credentials to handle special characters
+DB_URL = (
+    f"postgresql://{quote_plus(DB_USER)}:{quote_plus(DB_PASSWORD)}"
+    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 
 class IntegratedAgent:
@@ -67,21 +47,23 @@ class IntegratedAgent:
 
     def __init__(self, provider: str = "ollama"):
         self.provider = provider.lower()
-        self.history: List[BaseMessage] = []  # Simple conversation history
-        self.llm: Union[OllamaLLM, ChatOpenAI, None] = self._init_llm()
+        self.history: List[BaseMessage] = []
+        self.llm: Optional[Union[ChatOllama, ChatOpenAI]] = self._init_llm()
         if not self.llm:
             raise ValueError(f"Failed to init: {provider}")
         # determine context window after llm created
         self.MAX_HISTORY_TOKENS = self._get_model_max_tokens()
 
-    def _init_llm(self) -> Union[OllamaLLM, ChatOpenAI, None]:
+    def _init_llm(self) -> Optional[Union[ChatOllama, ChatOpenAI]]:
         if self.provider == "ollama":
             try:
                 r = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=5)
                 if OLLAMA_MODEL not in [m["name"] for m in r.json().get("models", [])]:
+                    logger.warning("Model %s not found in Ollama", OLLAMA_MODEL)
                     return None
-                return OllamaLLM(OLLAMA_MODEL, OLLAMA_HOST)
-            except:
+                return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
+            except Exception as e:
+                logger.warning("Failed to connect to Ollama: %s", e)
                 return None
         elif self.provider == "openai":
             if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
@@ -98,7 +80,8 @@ class IntegratedAgent:
                 print(f"✓ Available models: {', '.join(models[:3])}")
                 print(f"✓ Using model: {OLLAMA_MODEL}")
                 return True
-            except:
+            except Exception as e:
+                logger.warning("Ollama connection verification failed: %s", e)
                 return False
         return bool(OPENAI_API_KEY) and not (
             OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-your")
@@ -110,8 +93,8 @@ class IntegratedAgent:
         """Send a message and stream the response to stdout by default.
 
         When ``stream`` is True (default) the function prints tokens as they arrive and
-        returns the final reply text once complete. This mimics ChatGPT's
-        incremental output. Set ``stream=False`` to get the full response at once.
+        returns the final reply text once complete. Set ``stream=False`` to get the full
+        response at once.
         """
         try:
             # trim history if it exceeds the model's context window
@@ -119,23 +102,15 @@ class IntegratedAgent:
 
             messages: List[BaseMessage] = []
             if system_prompt:
-                messages.append(HumanMessage(content=system_prompt))
+                messages.append(SystemMessage(content=system_prompt))
             messages.extend(self.history)
             messages.append(HumanMessage(content=msg))
 
             if stream:
-                if isinstance(self.llm, OllamaLLM):
-                    resp = self._stream_ollama(messages)
-                else:
-                    resp = self._stream_openai(messages)
+                resp = self._stream_response(messages)
             else:
-                if isinstance(self.llm, OllamaLLM):
-                    resp = self.llm.invoke(messages)
-                elif self.llm:
-                    result = self.llm.invoke(messages)
-                    resp = result.content if hasattr(result, "content") else str(result)
-                else:
-                    resp = ""
+                result = self.llm.invoke(messages)
+                resp = result.content if hasattr(result, "content") else str(result)
 
             # Store in history
             self.history.append(HumanMessage(content=msg))
@@ -145,6 +120,17 @@ class IntegratedAgent:
             return resp if isinstance(resp, str) else str(resp)
         except Exception as e:
             return f"Error: {e}"
+
+    def _stream_response(self, messages: List[BaseMessage]) -> str:
+        """Stream LLM response to stdout via LangChain's streaming interface and return the full text."""
+        full = []
+        for chunk in self.llm.stream(messages):
+            text = chunk.content if hasattr(chunk, "content") else str(chunk)
+            if text:
+                print(text, end="", flush=True)
+                full.append(text)
+        print()
+        return "".join(full)
 
     def _estimate_tokens(self, text: Union[str, List]) -> int:
         # very simple estimate: split on whitespace
@@ -219,60 +205,9 @@ class IntegratedAgent:
     def clear_memory(self):
         self.history = []
 
-    # streaming helpers
-    def _stream_ollama(self, messages: List[BaseMessage]) -> str:
-        """Stream Ollama response to stdout and return the full text."""
-        # Ollama supports chunked output when you set stream=True
-        msgs = []
-        for msg in messages:
-            if isinstance(msg, HumanMessage):
-                msgs.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, AIMessage):
-                msgs.append({"role": "assistant", "content": msg.content})
-            else:
-                msgs.append({"role": "user", "content": str(msg.content)})
-
-        r = requests.post(
-            f"{OLLAMA_HOST}/api/chat",
-            json={"model": OLLAMA_MODEL, "messages": msgs, "stream": True},
-            stream=True,
-            timeout=60,
-        )
-        full = []
-        for line in r.iter_lines(decode_unicode=True):
-            if not line:
-                continue
-            try:
-                chunk = json.loads(line)
-                text = chunk.get("message", {}).get("content", "")
-            except Exception:
-                # not json? just print raw
-                text = line
-            print(text, end="", flush=True)
-            full.append(text)
-        print()
-        return "".join(full)
-
-    def _stream_openai(self, messages: List[BaseMessage]) -> str:
-        """Stream OpenAI response via ChatOpenAI streaming interface."""
-        # using callback streamed to stdout
-        from langchain_core.callbacks.streaming_stdout import (
-            StreamingStdOutCallbackHandler,
-        )
-
-        if not OPENAI_API_KEY:
-            return ""
-        handler = StreamingStdOutCallbackHandler()
-        llm = ChatOpenAI(
-            api_key=SecretStr(OPENAI_API_KEY),
-            model=OPENAI_MODEL,
-            streaming=True,
-            callbacks=[handler],
-        )
-        result = llm.invoke(messages)
-        # result may already have full text in .content
-        content = result.content if hasattr(result, "content") else str(result)
-        return content if isinstance(content, str) else str(content)
+    def close(self):
+        """Close any open resources."""
+        pass
 
 
 def main():

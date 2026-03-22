@@ -86,7 +86,7 @@ class TestRAGAgentInitialization(unittest.TestCase):
         )
 
     @patch("agent_with_rag.IntegratedAgent.__init__", return_value=None)
-    @patch("langchain_community.embeddings.OllamaEmbeddings")
+    @patch("langchain_ollama.OllamaEmbeddings")
     @patch("agent_with_rag.RAGRetriever")
     def test_init_auto_detect_ollama_embeddings(
         self, mock_retriever_class, mock_embeddings_class, mock_parent_init

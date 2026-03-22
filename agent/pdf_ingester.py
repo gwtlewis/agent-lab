@@ -35,31 +35,29 @@ class PDFIngestor:
 
     def _verify_tables(self):
         """Verify required tables exist"""
-        cursor = self.conn.cursor()
         try:
-            cursor.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'financial_docs'
-                )
-            """)
-            if not cursor.fetchone()[0]:
-                raise Exception(
-                    "financial_docs table not found. Run init-scripts/01-vectors.sql"
-                )
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'financial_docs'
+                    )
+                """)
+                if not cursor.fetchone()[0]:
+                    raise Exception(
+                        "financial_docs table not found. Run init-scripts/01-vectors.sql"
+                    )
 
-            cursor.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'document_chunks'
-                )
-            """)
-            if not cursor.fetchone()[0]:
-                raise Exception(
-                    "document_chunks table not found. Run init-scripts/01-vectors.sql"
-                )
-
-            cursor.close()
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'document_chunks'
+                    )
+                """)
+                if not cursor.fetchone()[0]:
+                    raise Exception(
+                        "document_chunks table not found. Run init-scripts/01-vectors.sql"
+                    )
         except psycopg2.Error as e:
             raise Exception(f"Table verification failed: {e}")
 
@@ -118,47 +116,46 @@ class PDFIngestor:
 
             # 4. Store in database
             print("Storing in database...")
-            cursor = self.conn.cursor()
 
             doc_title = title or os.path.splitext(os.path.basename(pdf_path))[0]
 
-            # Insert document record
             import json
 
-            cursor.execute(
-                """INSERT INTO financial_docs (title, source_file, content, embedding, metadata)
-                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                (
-                    doc_title,
-                    pdf_path,
-                    "".join([c.page_content for c in chunks[:5]]),
-                    embeddings_list[0] if embeddings_list else None,
-                    json.dumps(
-                        {
-                            "page_count": len(documents),
-                            "chunk_count": len(chunks),
-                            "file_name": os.path.basename(pdf_path),
-                        }
+            with self.conn.cursor() as cursor:
+                # Insert document record
+                cursor.execute(
+                    """INSERT INTO financial_docs (title, source_file, content, embedding, metadata)
+                       VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                    (
+                        doc_title,
+                        pdf_path,
+                        "".join([c.page_content for c in chunks[:5]]),
+                        embeddings_list[0] if embeddings_list else None,
+                        json.dumps(
+                            {
+                                "page_count": len(documents),
+                                "chunk_count": len(chunks),
+                                "file_name": os.path.basename(pdf_path),
+                            }
+                        ),
                     ),
-                ),
-            )
-            doc_id = cursor.fetchone()[0]
+                )
+                doc_id = cursor.fetchone()[0]
 
-            # Insert chunks
-            chunk_values = [
-                (doc_id, i, chunk.page_content, embedding)
-                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings_list))
-            ]
+                # Insert chunks
+                chunk_values = [
+                    (doc_id, i, chunk.page_content, embedding)
+                    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings_list))
+                ]
 
-            execute_values(
-                cursor,
-                """INSERT INTO document_chunks (doc_id, chunk_index, chunk_text, embedding)
-                   VALUES %s""",
-                chunk_values,
-            )
+                execute_values(
+                    cursor,
+                    """INSERT INTO document_chunks (doc_id, chunk_index, chunk_text, embedding)
+                       VALUES %s""",
+                    chunk_values,
+                )
 
             self.conn.commit()
-            cursor.close()
 
             result = {
                 "doc_id": doc_id,
@@ -181,26 +178,25 @@ class PDFIngestor:
     def list_documents(self) -> List[dict]:
         """List all ingested documents"""
         try:
-            cursor = self.conn.cursor()
-            cursor.execute("""
-                SELECT id, title, source_file, metadata, created_at
-                FROM financial_docs
-                ORDER BY created_at DESC
-            """)
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT id, title, source_file, metadata, created_at
+                    FROM financial_docs
+                    ORDER BY created_at DESC
+                """)
 
-            documents = []
-            for row in cursor.fetchall():
-                documents.append(
-                    {
-                        "id": row[0],
-                        "title": row[1],
-                        "source_file": row[2],
-                        "metadata": row[3],
-                        "created_at": row[4],
-                    }
-                )
+                documents = []
+                for row in cursor.fetchall():
+                    documents.append(
+                        {
+                            "id": row[0],
+                            "title": row[1],
+                            "source_file": row[2],
+                            "metadata": row[3],
+                            "created_at": row[4],
+                        }
+                    )
 
-            cursor.close()
             return documents
 
         except psycopg2.Error as e:
@@ -209,11 +205,10 @@ class PDFIngestor:
     def delete_document(self, doc_id: int) -> bool:
         """Delete a document and its chunks"""
         try:
-            cursor = self.conn.cursor()
-            cursor.execute("DELETE FROM financial_docs WHERE id = %s", (doc_id,))
+            with self.conn.cursor() as cursor:
+                cursor.execute("DELETE FROM financial_docs WHERE id = %s", (doc_id,))
+                deleted = cursor.rowcount > 0
             self.conn.commit()
-            deleted = cursor.rowcount > 0
-            cursor.close()
             return deleted
         except psycopg2.Error as e:
             self.conn.rollback()

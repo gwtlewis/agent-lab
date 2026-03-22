@@ -56,50 +56,48 @@ class RAGRetriever:
             # Generate embedding for query using LangChain embeddings
             query_embedding = self.embeddings.embed_query(query)
 
-            cursor = self.conn.cursor()
-
             # Search for similar chunks using cosine similarity
             # Use <=> operator for cosine similarity (returns -1 to 1, we want 0 to 1)
-            cursor.execute(
-                """
-                SELECT 
-                    dc.id,
-                    dc.chunk_text,
-                    fd.title,
-                    fd.source_file,
-                    (dc.embedding <=> %s::vector) as similarity,
-                    dc.chunk_index,
-                    fd.metadata
-                FROM document_chunks dc
-                JOIN financial_docs fd ON dc.doc_id = fd.id
-                WHERE (dc.embedding <=> %s::vector) > %s
-                ORDER BY (dc.embedding <=> %s::vector) DESC
-                LIMIT %s
-            """,
-                (
-                    query_embedding,
-                    query_embedding,
-                    similarity_threshold,
-                    query_embedding,
-                    k,
-                ),
-            )
-
-            results = []
-            for row in cursor.fetchall():
-                results.append(
-                    {
-                        "chunk_id": row[0],
-                        "content": row[1],
-                        "document_title": row[2],
-                        "source_file": row[3],
-                        "similarity_score": float(row[4]),
-                        "chunk_index": row[5],
-                        "metadata": row[6],
-                    }
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        dc.id,
+                        dc.chunk_text,
+                        fd.title,
+                        fd.source_file,
+                        (dc.embedding <=> %s::vector) as similarity,
+                        dc.chunk_index,
+                        fd.metadata
+                    FROM document_chunks dc
+                    JOIN financial_docs fd ON dc.doc_id = fd.id
+                    WHERE (dc.embedding <=> %s::vector) > %s
+                    ORDER BY (dc.embedding <=> %s::vector) DESC
+                    LIMIT %s
+                """,
+                    (
+                        query_embedding,
+                        query_embedding,
+                        similarity_threshold,
+                        query_embedding,
+                        k,
+                    ),
                 )
 
-            cursor.close()
+                results = []
+                for row in cursor.fetchall():
+                    results.append(
+                        {
+                            "chunk_id": row[0],
+                            "content": row[1],
+                            "document_title": row[2],
+                            "source_file": row[3],
+                            "similarity_score": float(row[4]),
+                            "chunk_index": row[5],
+                            "metadata": row[6],
+                        }
+                    )
+
             return results
 
         except psycopg2.Error as e:
@@ -120,29 +118,27 @@ class RAGRetriever:
             Exception: If retrieval fails
         """
         try:
-            cursor = self.conn.cursor()
-
-            cursor.execute(
-                """
-                SELECT 
-                    id,
-                    chunk_text,
-                    chunk_index
-                FROM document_chunks
-                WHERE doc_id = %s
-                ORDER BY chunk_index
-                LIMIT %s
-            """,
-                (doc_id, limit),
-            )
-
-            results = []
-            for row in cursor.fetchall():
-                results.append(
-                    {"chunk_id": row[0], "content": row[1], "chunk_index": row[2]}
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        id,
+                        chunk_text,
+                        chunk_index
+                    FROM document_chunks
+                    WHERE doc_id = %s
+                    ORDER BY chunk_index
+                    LIMIT %s
+                """,
+                    (doc_id, limit),
                 )
 
-            cursor.close()
+                results = []
+                for row in cursor.fetchall():
+                    results.append(
+                        {"chunk_id": row[0], "content": row[1], "chunk_index": row[2]}
+                    )
+
             return results
 
         except psycopg2.Error as e:
@@ -162,25 +158,23 @@ class RAGRetriever:
             Exception: If retrieval fails
         """
         try:
-            cursor = self.conn.cursor()
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        id,
+                        title,
+                        source_file,
+                        metadata,
+                        created_at,
+                        (SELECT COUNT(*) FROM document_chunks WHERE doc_id = %s) as chunk_count
+                    FROM financial_docs
+                    WHERE id = %s
+                """,
+                    (doc_id, doc_id),
+                )
 
-            cursor.execute(
-                """
-                SELECT 
-                    id,
-                    title,
-                    source_file,
-                    metadata,
-                    created_at,
-                    (SELECT COUNT(*) FROM document_chunks WHERE doc_id = %s) as chunk_count
-                FROM financial_docs
-                WHERE id = %s
-            """,
-                (doc_id, doc_id),
-            )
-
-            row = cursor.fetchone()
-            cursor.close()
+                row = cursor.fetchone()
 
             if not row:
                 return None
@@ -211,19 +205,17 @@ class RAGRetriever:
             Exception: If search fails
         """
         try:
-            cursor = self.conn.cursor()
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id FROM financial_docs 
+                    WHERE title ILIKE %s
+                    LIMIT 1
+                """,
+                    (f"%{title}%",),
+                )
 
-            cursor.execute(
-                """
-                SELECT id FROM financial_docs 
-                WHERE title ILIKE %s
-                LIMIT 1
-            """,
-                (f"%{title}%",),
-            )
-
-            row = cursor.fetchone()
-            cursor.close()
+                row = cursor.fetchone()
 
             if row:
                 return self.retrieve_document_info(row[0])
@@ -243,19 +235,17 @@ class RAGRetriever:
             Exception: If query fails
         """
         try:
-            cursor = self.conn.cursor()
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT 
+                        COUNT(DISTINCT fd.id) as total_documents,
+                        COUNT(dc.id) as total_chunks,
+                        SUM(COALESCE((fd.metadata->>'chunk_count')::integer, 0)) as total_metadata_chunks
+                    FROM financial_docs fd
+                    LEFT JOIN document_chunks dc ON fd.id = dc.doc_id
+                """)
 
-            cursor.execute("""
-                SELECT 
-                    COUNT(DISTINCT fd.id) as total_documents,
-                    COUNT(dc.id) as total_chunks,
-                    SUM(COALESCE((fd.metadata->>'chunk_count')::integer, 0)) as total_metadata_chunks
-                FROM financial_docs fd
-                LEFT JOIN document_chunks dc ON fd.id = dc.doc_id
-            """)
-
-            row = cursor.fetchone()
-            cursor.close()
+                row = cursor.fetchone()
 
             return {
                 "total_documents": row[0] or 0,

@@ -1,7 +1,7 @@
 """Unit tests for RAG Retriever module"""
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from rag_retriever import RAGRetriever
 
@@ -70,7 +70,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_retrieve_context_success(self, mock_connect):
         """Test successful context retrieval"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchall.return_value = [
             (
                 1,
@@ -106,7 +107,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_retrieve_context_no_results(self, mock_connect):
         """Test retrieve with no matching results"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchall.return_value = []
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -120,7 +122,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_retrieve_by_document(self, mock_connect):
         """Test retrieving chunks by document ID"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchall.return_value = [
             (1, "Chunk 1 content", 0),
             (2, "Chunk 2 content", 1),
@@ -140,7 +143,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_retrieve_document_info_found(self, mock_connect):
         """Test retrieving document info when found"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (
             1,
             "Test PDF",
@@ -164,7 +168,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_retrieve_document_info_not_found(self, mock_connect):
         """Test retrieving document info when not found"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = None
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -178,7 +183,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_search_by_title_found(self, mock_connect):
         """Test searching by title when found"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
 
         # First query returns doc_id
         mock_cursor.fetchone.side_effect = [
@@ -206,7 +212,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_search_by_title_not_found(self, mock_connect):
         """Test searching by title when not found"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = None
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -220,7 +227,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_get_stats(self, mock_connect):
         """Test retrieving statistics"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (5, 125, 0)  # 5 docs, 125 chunks
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -235,7 +243,8 @@ class TestRAGRetriever(unittest.TestCase):
     def test_retrieve_context_with_threshold(self, mock_connect):
         """Test retrieve with similarity threshold"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchall.return_value = [
             (1, "Test chunk", "Test Document", "/path/to.pdf", 0.95, 0, {})
         ]

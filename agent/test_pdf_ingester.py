@@ -45,7 +45,8 @@ class TestPDFIngestor(unittest.TestCase):
     def test_verify_tables_missing(self, mock_connect):
         """Test table verification with missing tables"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (False,)
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -82,7 +83,8 @@ class TestPDFIngestor(unittest.TestCase):
         """Test successful PDF ingestion"""
         # Setup mocks
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.side_effect = [
             (True,),
             (True,),
@@ -130,7 +132,8 @@ class TestPDFIngestor(unittest.TestCase):
     def test_ingest_pdf_empty_content(self, mock_connect, mock_loader_class):
         """Test ingestion with empty PDF"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.side_effect = [(True,), (True,)]  # table exists checks
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -157,7 +160,8 @@ class TestPDFIngestor(unittest.TestCase):
     def test_list_documents_success(self, mock_connect):
         """Test listing documents"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.fetchall.return_value = [
             (1, "Test PDF", "/path/to/pdf", {"pages": 10}, "2024-01-01"),
             (2, "Another PDF", "/path/to/pdf2", {"pages": 5}, "2024-01-02"),
@@ -176,7 +180,8 @@ class TestPDFIngestor(unittest.TestCase):
     def test_delete_document_success(self, mock_connect):
         """Test deleting a document"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.rowcount = 1
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn
@@ -191,7 +196,8 @@ class TestPDFIngestor(unittest.TestCase):
     def test_delete_document_not_found(self, mock_connect):
         """Test deleting non-existent document"""
         mock_conn = Mock()
-        mock_cursor = Mock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__.return_value = mock_cursor
         mock_cursor.rowcount = 0
         mock_conn.cursor.return_value = mock_cursor
         mock_connect.return_value = mock_conn

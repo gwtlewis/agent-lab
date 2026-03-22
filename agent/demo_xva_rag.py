@@ -16,8 +16,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Configuration
-PDF_PATH = "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf"
+# Configuration — set XVA_PDF_PATH env var to point to your copy of the book
+PDF_PATH = os.getenv(
+    "XVA_PDF_PATH",
+    "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+)
 PDF_TITLE = "The xVA Challenge - Jon Gregory (2015)"
 
 # Database
@@ -114,9 +117,11 @@ embeddings = OllamaEmbeddings(
 db_url = "postgresql://postgres:postgres@localhost:5432/postgres"
 ingestor = PDFIngestor(db_url, embeddings)
 
-# Step 4: Ingest PDF
+# Step 4: Ingest PDF (set XVA_PDF_PATH or pass the path directly)
+import os
+pdf_path = os.getenv("XVA_PDF_PATH", "/path/to/2015_The_xVA_Challenge-Jon Gregory.pdf")
 result = ingestor.ingest_pdf(
-    pdf_path="/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+    pdf_path=pdf_path,
     title="The xVA Challenge - Jon Gregory (2015)"
 )
 
@@ -124,7 +129,6 @@ result = ingestor.ingest_pdf(
 # - doc_id: Unique document ID
 # - pages: Number of pages processed
 # - chunks: Number of text chunks created
-# - embeddings: Number of embeddings created
 
 print(f"Ingested: {result['pages']} pages, {result['chunks']} chunks")
 print(f"Document ID: {result['doc_id']}")

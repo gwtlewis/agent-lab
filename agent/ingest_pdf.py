@@ -35,7 +35,7 @@ def get_embeddings_instance(provider: str = "ollama"):
             raise ValueError("OPENAI_API_KEY not configured in .env")
         return OpenAIEmbeddings(model="text-embedding-3-small", api_key=api_key)
     elif provider.lower() == "ollama":
-        from langchain_community.embeddings import OllamaEmbeddings
+        from langchain_ollama import OllamaEmbeddings
 
         ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
         return OllamaEmbeddings(model="nomic-embed-text:latest", base_url=ollama_host)

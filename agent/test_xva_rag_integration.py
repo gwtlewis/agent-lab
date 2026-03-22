@@ -19,9 +19,10 @@ class TestXVAPDFIntegrationSetup(unittest.TestCase):
         # Load environment variables
         load_dotenv()
 
-        # PDF configuration
-        cls.pdf_path = (
-            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf"
+        # PDF configuration — use env var so CI can skip gracefully
+        cls.pdf_path = os.getenv(
+            "XVA_PDF_PATH",
+            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
         )
         cls.pdf_title = "The xVA Challenge - Jon Gregory (2015)"
 
@@ -36,6 +37,15 @@ class TestXVAPDFIntegrationSetup(unittest.TestCase):
         cls.embeddings_provider = os.getenv("EMBEDDINGS_PROVIDER", "ollama")
         cls.ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_environment_configuration_complete(self):
         """Verify all environment variables are properly set"""
         self.assertTrue(os.path.exists(self.pdf_path), "PDF file must exist")
@@ -43,6 +53,15 @@ class TestXVAPDFIntegrationSetup(unittest.TestCase):
         self.assertIsNotNone(self.db_host)
         self.assertIsNotNone(self.db_user)
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_pdf_metadata(self):
         """Test PDF file metadata"""
         file_stats = Path(self.pdf_path).stat()
@@ -142,9 +161,21 @@ class XVARAGWorkflow(unittest.TestCase):
     These tests document the expected workflow, not actual execution
     """
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_workflow_step_1_pdf_validation(self):
         """Step 1: Validate PDF is accessible and readable"""
-        pdf_path = "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf"
+        pdf_path = os.getenv(
+            "XVA_PDF_PATH",
+            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+        )
         self.assertTrue(os.path.exists(pdf_path))
         self.assertTrue(os.access(pdf_path, os.R_OK))
 
@@ -293,9 +324,21 @@ class XVAPDFUsageScenarios(unittest.TestCase):
 class XVADataQualityTests(unittest.TestCase):
     """Test data quality checks for xVA document processing"""
 
+    @unittest.skipUnless(
+        os.path.exists(
+            os.getenv(
+                "XVA_PDF_PATH",
+                "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+            )
+        ),
+        "XVA PDF not found; set XVA_PDF_PATH env var",
+    )
     def test_document_structure_valid(self):
         """Verify PDF has valid structure for processing"""
-        pdf_path = "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf"
+        pdf_path = os.getenv(
+            "XVA_PDF_PATH",
+            "/Users/lewisgong/Downloads/2015_The_xVA_Challenge-Jon Gregory.pdf",
+        )
 
         # Check file extension
         self.assertTrue(pdf_path.endswith(".pdf"))
@@ -304,10 +347,10 @@ class XVADataQualityTests(unittest.TestCase):
         self.assertTrue(os.access(pdf_path, os.R_OK))
 
     def test_content_chunking_strategy(self):
-        """Define strategy for chunking PDF content"""
+        """Define strategy for chunking PDF content — matches PDFIngestor defaults"""
         strategy = {
-            "chunk_size": 500,  # characters
-            "overlap": 50,  # characters
+            "chunk_size": 1000,  # characters — matches PDFIngestor default
+            "overlap": 200,      # characters — matches PDFIngestor default
             "min_chunks": 100,
             "max_chunks": 500,
         }
