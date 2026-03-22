@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Lab</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-title">
+        <span class="app-icon">◎</span>
+        <span class="app-name">Agent Lab</span>
+      </div>
+      <div class="header-meta">
+        <span id="provider-badge" class="badge badge--neutral">—</span>
+        <span id="status-dot" class="status-dot status-dot--disconnected" title="Disconnected"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main layout ─────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Transcript -->
+    <section id="transcript" class="transcript" role="log" aria-live="polite" aria-label="Conversation">
+      <div class="transcript-empty" id="empty-state">
+        <div class="empty-icon">◎</div>
+        <p class="empty-title">How can I help?</p>
+        <p class="empty-sub">Start a conversation below.</p>
+      </div>
+    </section>
+
+    <!-- Reasoning panel (collapsible) -->
+    <aside id="reasoning-panel" class="reasoning-panel reasoning-panel--hidden" aria-label="Model reasoning">
+      <button class="reasoning-toggle" id="reasoning-toggle" aria-expanded="false">
+        <span class="reasoning-toggle-label">Reasoning</span>
+        <span class="reasoning-toggle-chevron">›</span>
+      </button>
+      <div class="reasoning-body" id="reasoning-body"></div>
+    </aside>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <div class="input-row">
+        <textarea
+          id="user-input"
+          class="input-textarea"
+          placeholder="Message…"
+          rows="1"
+          aria-label="Message input"
+          autofocus
+        ></textarea>
+        <div class="input-actions">
+          <button id="stop-btn" class="btn btn--icon btn--stop" title="Stop" aria-label="Stop generation" hidden>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+              <rect x="4" y="4" width="12" height="12" rx="2"/>
+            </svg>
+          </button>
+          <button id="send-btn" class="btn btn--primary" title="Send (Enter)" aria-label="Send">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+              <path d="M3.105 3.105a1.5 1.5 0 012.01-.14l12 7.5a1.5 1.5 0 010 2.57l-12 7.5a1.5 1.5 0 01-2.26-1.65L4.5 12H10a.5.5 0 000-1H4.5L2.855 4.895a1.5 1.5 0 01.25-1.79z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-footer">
+        <button id="clear-btn" class="btn btn--ghost btn--small">Clear conversation</button>
+        <label class="reasoning-toggle-label-inline">
+          <input type="checkbox" id="reasoning-checkbox" checked />
+          Show reasoning
+        </label>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/vendor/marked.min.js"></script>
+  <script src="/static/vendor/purify.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

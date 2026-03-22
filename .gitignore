@@ -1,12 +1,13 @@
-# Byte-compiled
+# Byte-compiled / optimised Python
 __pycache__/
 *.py[cod]
+*.pyo
 
-# Virtual envs
+# Virtual environments
 .venv/
 venv/
 
-# Env files
+# Environment / secrets
 .env
 
 # IDEs
@@ -18,9 +19,19 @@ venv/
 
 # Python packaging
 *.egg-info/
+dist/
+build/
+
+# Test & coverage artefacts
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Logs
 *.log
 
-# Ignore nested venv in subproject
+# pip typo artefacts (e.g. `pip install pkg =version`)
+=*
+
+# Nested venv in agent subproject
 agent/.venv/

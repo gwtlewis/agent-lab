@@ -3,7 +3,7 @@
 import logging
 import os
 import sys
-from typing import List, Optional, Union
+from typing import Generator, List, Optional, Union
 from urllib.parse import quote_plus
 
 import requests
@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from event_model import AgentEvent
 from ollama_utils import normalize_ollama_host
 
 load_dotenv()
@@ -58,13 +59,25 @@ class IntegratedAgent:
         self.MAX_HISTORY_TOKENS = self._get_model_max_tokens()
 
     def _init_llm(self) -> Optional[Union[ChatOllama, ChatOpenAI]]:
+        return self._make_llm(reasoning=False)
+
+    def _init_llm_with_reasoning(self) -> Optional[ChatOllama]:
+        """Return a reasoning-enabled ChatOllama instance, or None if unsupported."""
+        if self.provider != "ollama":
+            return None
+        return self._make_llm(reasoning=True)
+
+    def _make_llm(self, reasoning: bool = False) -> Optional[Union[ChatOllama, ChatOpenAI]]:
         if self.provider == "ollama":
             try:
                 r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
                 if OLLAMA_MODEL not in [m["name"] for m in r.json().get("models", [])]:
                     logger.warning("Model %s not found in Ollama", OLLAMA_MODEL)
                     return None
-                return ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL)
+                kwargs = {"model": OLLAMA_MODEL, "base_url": OLLAMA_BASE_URL}
+                if reasoning:
+                    kwargs["reasoning"] = True
+                return ChatOllama(**kwargs)
             except Exception as e:
                 logger.warning("Failed to connect to Ollama: %s", e)
                 return None
@@ -134,6 +147,69 @@ class IntegratedAgent:
                 full.append(text)
         print()
         return "".join(full)
+
+    def stream_events(
+        self,
+        msg: str,
+        system_prompt: Optional[str] = None,
+        enable_reasoning: bool = True,
+    ) -> Generator[AgentEvent, None, None]:
+        """Yield normalized AgentEvent objects while streaming a response.
+
+        Emits:
+          - AgentEvent.status("thinking") immediately
+          - AgentEvent.reasoning(chunk) for each reasoning token (Ollama only)
+          - AgentEvent.token(chunk) for each answer token
+          - AgentEvent.final(full_text) when done
+          - AgentEvent.error(msg) on failure (replaces final)
+
+        The caller is responsible for appending the completed turn to history
+        by calling ``record_turn(msg, full_text)`` after consuming all events.
+        """
+        yield AgentEvent.status("thinking")
+
+        try:
+            self._trim_history()
+            messages: List[BaseMessage] = []
+            if system_prompt:
+                messages.append(SystemMessage(content=system_prompt))
+            messages.extend(self.history)
+            messages.append(HumanMessage(content=msg))
+
+            # Try reasoning-enabled LLM first (Ollama only)
+            reasoning_llm = self._init_llm_with_reasoning() if enable_reasoning else None
+            llm = reasoning_llm if reasoning_llm is not None else self.llm
+
+            full_answer: List[str] = []
+            reasoning_shown = False
+
+            for chunk in llm.stream(messages):
+                # Reasoning trace arrives in additional_kwargs for ChatOllama;
+                # only forward it when the caller opted in to reasoning.
+                if enable_reasoning:
+                    reasoning_chunk = (
+                        chunk.additional_kwargs.get("reasoning_content", "")
+                        if hasattr(chunk, "additional_kwargs")
+                        else ""
+                    )
+                    if reasoning_chunk:
+                        reasoning_shown = True
+                        yield AgentEvent.reasoning(reasoning_chunk)
+
+                answer_chunk = chunk.content if hasattr(chunk, "content") else str(chunk)
+                if answer_chunk:
+                    full_answer.append(answer_chunk)
+                    yield AgentEvent.token(answer_chunk)
+
+            full_text = "".join(full_answer)
+            # Persist turn in history
+            self.history.append(HumanMessage(content=msg))
+            self.history.append(AIMessage(content=full_text))
+            yield AgentEvent.final(full_text, reasoning_shown=reasoning_shown)
+
+        except Exception as e:
+            logger.exception("stream_events error: %s", e)
+            yield AgentEvent.error(str(e))
 
     def _estimate_tokens(self, text: Union[str, List]) -> int:
         # very simple estimate: split on whitespace

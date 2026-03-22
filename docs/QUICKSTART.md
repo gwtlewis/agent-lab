@@ -1,17 +1,19 @@
 # Agent Lab - Quick Start Guide
 
-**Status**: ✅ Production Ready | **Date**: 2026-03-16
+**Status**: ✅ Production Ready | **Date**: 2026-03-22
 
 ## 🚀 30-Second Start
 
 ```bash
-# Terminal 1: Start database
-cd /Users/lewisgong/code/agent-lab
+# Terminal 1: Start database (optional – needed for RAG only)
 docker-compose up -d
 
-# Terminal 2: Run agent
-cd /Users/lewisgong/code/agent-lab/agent
-python agent.py
+# Terminal 2: Launch the web UI (recommended)
+./start.sh
+# → Open http://127.0.0.1:8000
+
+# Or run the CLI agent directly
+cd agent && .venv/bin/python agent.py
 ```
 
 ## 📋 5-Minute Overview
@@ -19,9 +21,10 @@ python agent.py
 ### What Is Agent Lab?
 
 A complete AI system with:
-- **Vector Database**: PostgreSQL 17.9 + pgvector (for semantic search)
+- **Vector Database**: PostgreSQL 17.9 + pgvector (for semantic search / RAG)
 - **AI Agent**: LangChain with Ollama (local) or OpenAI (remote)
-- **Chat Interface**: Interactive CLI with multi-turn conversations
+- **Web UI**: Browser chat with streaming, Markdown rendering, and reasoning display
+- **CLI**: Interactive REPL with multi-turn conversation memory
 
 ### What Can It Do?
 
@@ -37,27 +40,36 @@ A complete AI system with:
 
 ### Who Runs What?
 
-| Component | Status | Command |
-|-----------|--------|---------|
-| PostgreSQL | Docker | `docker-compose up -d` |
-| Ollama | External | `ollama serve` (or already running) |
-| Agent | Python | `python agent.py` |
+| Component | Required for | Command |
+|-----------|--------------|---------|
+| PostgreSQL | RAG only | `docker-compose up -d` |
+| Ollama | Chat (local LLM) | `ollama serve` (or already running) |
+| Web server | Browser UI | `./start.sh` |
+| CLI agent | Terminal chat | `cd agent && .venv/bin/python agent.py` |
 
 ## 🎯 Common Tasks
 
-### Start Everything
+### Launch the Web UI (recommended)
 
 ```bash
-# Terminal 1: Start database
-cd /Users/lewisgong/code/agent-lab
+# From repo root — handles venv, port, and startup banner automatically
+./start.sh
+```
+
+Open **http://127.0.0.1:8000** in your browser.  
+To use a different port, set `WEB_PORT=9000` in `agent/.env`.
+
+### Start Everything (RAG stack)
+
+```bash
+# Terminal 1: database (only needed for RAG)
 docker-compose up -d
 
-# Terminal 2: Verify Ollama (if not already running)
+# Terminal 2: verify Ollama is reachable
 curl http://127.0.0.1:11434/api/tags
 
-# Terminal 3: Run agent
-cd /Users/lewisgong/code/agent-lab/agent
-python agent.py
+# Terminal 3: web UI
+./start.sh
 ```
 
 ### Use Ollama (Local) - Default

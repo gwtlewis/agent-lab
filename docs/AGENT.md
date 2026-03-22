@@ -1,16 +1,17 @@
-# AI Agent - LangChain + OpenAI SDK
+# AI Agent – LangChain + Ollama / OpenAI
 
-LangChain-based conversational AI agent with support for multiple LLM providers (Ollama local, OpenAI remote).
+LangChain-based conversational AI agent with support for multiple LLM providers,
+real-time token streaming, chain-of-thought reasoning display, and a browser UI.
 
 ## Features
 
-- **Multi-Provider Support**: Switch between Ollama (local) and OpenAI (remote) via `.env` configuration
-- **LangChain Integration**: Uses `langchain_core.messages` for standardized message handling
-- **Conversation Memory**: Maintains multi-turn conversation context with automatic message history
-- **Custom Ollama Wrapper**: `OllamaLLM` class bridges Ollama REST API to LangChain interface
-- **Provider Factory Pattern**: Dynamic initialization based on `LLM_PROVIDER` environment variable
-- **Interactive CLI**: REPL-style interface with commands for conversation management
-- **No Complex Dependencies**: Removed ConversationBufferMemory - uses simple Python list for memory
+- **Multi-Provider Support**: Switch between Ollama (local) and OpenAI (remote) via `.env`
+- **LangChain Integration**: Uses `langchain_ollama.ChatOllama` and `langchain_openai.ChatOpenAI`
+- **Conversation Memory**: Multi-turn context with automatic history trimming
+- **Token Streaming**: `stream_events()` generator yields `AgentEvent` objects in real time
+- **Reasoning Stream**: Optional chain-of-thought trace via Ollama's `reasoning=True` flag
+- **Web UI**: Browser chat served by `web_server.py` over WebSocket
+- **CLI REPL**: Interactive terminal interface for quick testing
 
 ## Setup
 
@@ -24,8 +25,9 @@ LangChain-based conversational AI agent with support for multiple LLM providers 
 
 1. Install dependencies:
 ```bash
-cd /Users/lewisgong/code/agent-lab/agent
-/Users/lewisgong/code/.venv/bin/pip install -r requirements.txt
+cd agent
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
 2. Verify Ollama models (if using Ollama provider):
@@ -60,17 +62,19 @@ OPENAI_MODEL=gpt-4
 
 ## Running the Agent
 
-### Method 1: Using the run script (recommended)
+### Web UI (recommended)
 
 ```bash
-/Users/lewisgong/code/agent-lab/agent/run_agent.sh
+# From repo root
+./start.sh
+# → http://127.0.0.1:8000
 ```
 
-### Method 2: Direct Python
+### CLI
 
 ```bash
-cd /Users/lewisgong/code/agent-lab/agent
-/Users/lewisgong/code/.venv/bin/python agent.py
+cd agent
+.venv/bin/python agent.py
 ```
 
 ## Interactive Commands
@@ -340,38 +344,84 @@ OLLAMA_MODEL=neural-chat:7b
 - Try smaller model: `neural-chat:7b` instead of `qwen3:8b`
 - Increase timeout in agent.py (currently 60s)
 
+## Streaming API – `stream_events()`
+
+`IntegratedAgent.stream_events()` is a synchronous generator that yields
+`AgentEvent` objects as the model produces tokens.
+
+```python
+from agent import IntegratedAgent
+
+agent = IntegratedAgent(provider="ollama")
+for event in agent.stream_events("Explain RAG in one paragraph",
+                                  enable_reasoning=True):
+    if event.type == "reasoning":
+        print("[think]", event.content, end="", flush=True)
+    elif event.type == "token":
+        print(event.content, end="", flush=True)
+    elif event.type == "final":
+        print()  # newline
+        break
+    elif event.type == "error":
+        print("Error:", event.content)
+        break
+```
+
+### Event types
+
+| `type` | When | `content` |
+|---|---|---|
+| `status` | First event (`"thinking"`) | status string |
+| `reasoning` | Ollama chain-of-thought token | reasoning chunk |
+| `token` | Each answer token | text chunk |
+| `final` | Stream complete | full answer text |
+| `error` | Exception occurred | error message |
+
+### Reasoning stream
+
+When `enable_reasoning=True`, the agent calls `_init_llm_with_reasoning()`
+which creates a `ChatOllama` instance with `reasoning=True`.  
+Reasoning chunks arrive in `chunk.additional_kwargs["reasoning_content"]`
+and are emitted as `reasoning` events.
+
+Reasoning events are **suppressed** when `enable_reasoning=False`, regardless
+of whether the underlying model emits reasoning content.
+
+## Event Model – `event_model.py`
+
+`AgentEvent` is the shared wire format used by both `stream_events()` and
+`web_server.py`.
+
+```python
+from event_model import AgentEvent
+
+e = AgentEvent.token("hello")
+print(e.to_json())
+# {"type": "token", "content": "hello", "metadata": {}}
+```
+
+Factory methods: `.status()`, `.reasoning()`, `.token()`, `.final()`,
+`.error()`, `.pong()`, `.cleared()`.
+
+## Ollama Host Normalisation
+
+`ollama_utils.normalize_ollama_host()` rewrites `localhost` → `127.0.0.1`
+before passing the URL to `ChatOllama`.
+
+**Root cause**: `httpx` (used internally by `ChatOllama`) resolves `localhost`
+to `::1` (IPv6) on macOS.  If Ollama only listens on the IPv4 loopback,
+the connection drops.  `requests` falls back to IPv4 silently; `httpx` does not.
+
 ## Environment Integration
 
-- **Parent Project**: agent-lab (Docker PostgreSQL with pgvector)
-- **Python Environment**: `/Users/lewisgong/code/.venv` (Python 3.13.1)
-- **Host Platform**: macOS with Ollama running
-- **Database**: PostgreSQL 17.9 with pgvector 0.8.2
-
-## Migration from Requests-based Agent
-
-Updated from previous `requests`-only implementation:
-
-| Change | Before | After |
-|--------|--------|-------|
-| Framework | Manual HTTP requests | LangChain with messages |
-| Memory | Custom dict storage | LangChain BaseMessage list |
-| LLM Abstraction | Single-provider | Multi-provider factory |
-| OpenAI Support | Not available | Supported via LangChain |
-| Message Format | Dict-based | LangChain message objects |
-
-## Next Steps
-
-- **Database Integration**: Store embeddings in pgvector for semantic search
-- **System Prompts**: Add configurable system prompts for different agent roles
-- **Streaming Responses**: Implement streaming for real-time chat responses
-- **Function Calling**: Add tool calling support for extended agent capabilities
-- **Retrieval Augmented Generation (RAG)**: Connect to pgvector for knowledge-base queries
-- **Multi-model Orchestration**: Chain multiple models for complex tasks
+- **Web server**: `web_server.py` — FastAPI + WebSocket
+- **Browser UI**: `static/` — Apple-style single-page chat
+- **Database**: PostgreSQL 17.9 + pgvector (for RAG)
+- **Host Platform**: macOS with Ollama running locally
 
 ## Notes
 
-- Conversation history is stored in memory (cleared on exit)
-- Each message includes full conversation context for better responses
-- API calls have a 60-second timeout
-- Use `clear_memory()` or `clear` command to start fresh conversation
-- Provider can be changed at runtime by modifying `.env` and restarting agent
+- Conversation history is stored in memory (cleared on exit or `clear_memory()`)
+- `WEB_PORT` in `agent/.env` controls the browser port (default: `8000`)
+- Use `./start.sh` from the repo root to launch the web UI with one command
+
