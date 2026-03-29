@@ -1,0 +1,9 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <!-- Seamless Mobius curve -->
+  <path d="M8.5 7.5 C4 7.5 2 10 2 12 C2 14.5 4.5 16.5 8.5 16.5 C12.5 16.5 15 7.5 19 7.5 C21.5 7.5 23 9.5 23 12 C23 14 21.5 16.5 19 16.5" stroke="#0A84FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Under-lap connection mimicking the twisted ribbon -->
+  <path d="M19 16.5 C15 16.5 12.5 7.5 8.5 7.5" stroke="#0A84FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Tech node accents -->
+  <circle cx="19" cy="12" r="2" fill="#0A84FF" />
+  <circle cx="8.5" cy="12" r="2" fill="#0A84FF" />
+</svg>

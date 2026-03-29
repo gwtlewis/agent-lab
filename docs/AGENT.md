@@ -7,7 +7,7 @@ real-time token streaming, chain-of-thought reasoning display, and a browser UI.
 
 - **Multi-Provider Support**: Switch between Ollama (local) and OpenAI (remote) via `.env`
 - **LangChain Integration**: Uses `langchain_ollama.ChatOllama` and `langchain_openai.ChatOpenAI`
-- **Conversation Memory**: Multi-turn context with automatic history trimming
+- **Conversation Memory**: Multi-turn context with LLM-powered memory summarization (compresses older turns at 90% token budget; falls back to trimming)
 - **Token Streaming**: `stream_events()` generator yields `AgentEvent` objects in real time
 - **Reasoning Stream**: Optional chain-of-thought trace via Ollama's `reasoning=True` flag
 - **Web UI**: Browser chat served by `web_server.py` over WebSocket
@@ -130,7 +130,6 @@ Goodbye!
 ```
 agent-lab/agent/
 ├── agent.py              # Main agent with OllamaLLM & IntegratedAgent
-├── run_agent.sh          # Execution script
 ├── requirements.txt      # Python dependencies (LangChain, OpenAI, requests)
 ├── .env                  # Configuration (LLM_PROVIDER, keys, models)
 ├── test_agent.py         # Connection test script

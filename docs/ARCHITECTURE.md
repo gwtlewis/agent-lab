@@ -1,6 +1,6 @@
 # Agent Lab – Architecture
 
-**Last Updated**: 2026-03-22
+**Last Updated**: 2026-03-29
 **Project Status**: ✅ Production Ready
 
 ## 1. Project Overview
@@ -139,13 +139,34 @@ All events serialize to:
 {"type": "token", "content": "hello", "metadata": {}}
 ```
 
+| `type` | When emitted |
+|---|---|
+| `status` | Connection established, thinking, memory compacting |
+| `reasoning` | Each chain-of-thought token (Ollama reasoning mode) |
+| `tool_call` | Once per RAG / general tool invocation |
+| `board` | When `render_dashboard` is called — carries HTML fragment for the board panel |
+| `token` | Each answer text chunk |
+| `final` | End of turn; carries full answer and `reasoning_shown` flag |
+| `error` | On exception; replaces `final` |
+| `pong` / `cleared` | Heartbeat reply / history clear confirmation |
+
 ### 4.4 Browser client (`static/app.js`)
 
 - Connects via `WebSocket` and listens with `addEventListener`
 - Streams tokens into the agent bubble using `textContent`
 - On `final` event: renders the full response as Markdown via `marked.parse()` + `DOMPurify.sanitize()`
+- On `board` event: writes the HTML fragment into a sandboxed `<iframe>` (Chart.js 4.4 pre-loaded) shown as a split panel to the right of the transcript
 - Libraries vendored locally in `static/vendor/` (no CDN dependency)
 - Saves/restores conversation to `sessionStorage`; markdown source stored in `dataset.md`
+
+### 4.5 Pluggable tools (`tools/`)
+
+Tools are `@lc_tool`-decorated functions passed into `IntegratedAgent(tools=[...])`.
+The agent binds them via `llm.bind_tools()` and dispatches by name in `stream_events()`.
+
+| Tool | File | What it does |
+|---|---|---|
+| `render_dashboard` | `tools/dashboard.py` | Returns an HTML fragment; agent dispatch emits `AgentEvent.board` instead of the normal `tool_call` pill |
 
 ### 4.5 Launch
 
@@ -159,51 +180,102 @@ All events serialize to:
 
 ### 4.1 Core Implementation
 
-**File**: `agent.py` (160 lines)
+**Files**: `llm_providers.py`, `agent.py`
 
-**Key Classes**:
+---
 
-#### OllamaLLM
-- Wraps Ollama REST API into LangChain-compatible interface
-- Converts LangChain `BaseMessage` objects to Ollama chat format
-- Implements `invoke(messages: List[BaseMessage]) -> str`
-- Handles HTTP POST to `/api/chat` endpoint
-- 60-second timeout for long-running queries
+#### LLMProvider (llm_providers.py) — Pluggable Provider Layer
+
+The `llm_providers` module is the **single source of truth** for all LLM provider
+configuration. No other module reads Ollama- or OpenAI-related environment variables
+directly — everything goes through this abstraction.
 
 ```python
-class OllamaLLM:
-    """Custom LLM wrapper for Ollama using LangChain messages"""
-    def invoke(self, messages: List[BaseMessage]) -> str:
-        # Converts LangChain messages → Ollama API format
-        # Returns: response string from model
+class LLMProvider(ABC):
+    """Abstract interface every provider must implement."""
+    @property
+    def name(self) -> str: ...              # 'ollama' | 'openai'
+    @property
+    def model_name(self) -> str: ...        # active chat model name
+    @property
+    def embedding_model_name(self) -> str:  # active embeddings model name
+    def is_available(self) -> bool: ...     # health check
+    def get_chat_model(self, reasoning: bool = False): ...  # ChatOllama | ChatOpenAI
+    def get_embeddings(self): ...           # OllamaEmbeddings | OpenAIEmbeddings
+    def get_max_tokens(self) -> int: ...    # context-window size
+
+def get_provider(name: str | None = None) -> LLMProvider:
+    """Factory — reads LLM_PROVIDER env var when name is None."""
 ```
 
-#### IntegratedAgent
-- Multi-provider factory pattern
+**Concrete implementations**:
+
+| Class | Provider | Chat model | Embeddings model |
+|---|---|---|---|
+| `OllamaProvider` | Local Ollama | `OLLAMA_MODEL` | `OLLAMA_EMBEDDING_MODEL` |
+| `OpenAIProvider` | OpenAI API | `OPENAI_MODEL` | `OPENAI_EMBEDDING_MODEL` |
+
+**Environment variables** (all optional — sensible defaults shown):
+
+```env
+# Ollama
+OLLAMA_HOST=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3:8b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
+OLLAMA_MAX_TOKENS=8192          # optional override
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_MAX_TOKENS=8192          # optional override
+```
+
+---
+
+#### IntegratedAgent (agent.py)
+
+- Delegates all LLM init to `get_provider(provider)`
 - Manages conversation history (simple Python list)
-- Routes to OllamaLLM or ChatOpenAI based on provider
-- Implements conversation memory without external dependencies
+- Supports streaming, reasoning traces (Ollama), history trimming, and LLM-powered memory summarization
 
 ```python
 class IntegratedAgent:
     def __init__(self, provider: str = "ollama"):
-        self.provider = provider
-        self.history: List[BaseMessage] = []
-        self.llm = self._init_llm()
+        self._llm_provider: LLMProvider = get_provider(self.provider)
+        self.llm = self._llm_provider.get_chat_model()
+        self.MAX_HISTORY_TOKENS = self._llm_provider.get_max_tokens()
     
-    def _init_llm(self):
-        # Routes to OllamaLLM or ChatOpenAI
-    
-    def chat(self, msg: str) -> str:
-        # Send message with history context
-        # Store response in memory
+    def chat(self, msg: str) -> str: ...           # streaming or blocking
+    def stream_events(self, msg: str) -> Generator[AgentEvent, None, None]: ...
     
     def get_memory(self) -> str:
         # Display conversation history
     
     def clear_memory(self):
         # Reset conversation
+
+    def _needs_summarization(self) -> bool:
+        # True when history >= 90% of MAX_HISTORY_TOKENS
+
+    def _summarize_history(self) -> None:
+        # Compress older turns into a SystemMessage summary; preserve last 4 messages verbatim
 ```
+
+#### Memory Compression Strategy
+
+When conversation history reaches **90% of the model's context window**, the agent
+automatically compresses older turns:
+
+1. The most recent **4 messages (2 turn pairs)** are kept verbatim.
+2. All earlier turns are sent to the LLM with a summarization prompt.
+3. The resulting summary replaces the old turns as a single `SystemMessage` at the
+   start of history.
+4. If the LLM call fails, the agent falls back to plain trimming (dropping oldest messages).
+
+During `stream_events()`, a `status("compacting")` event is emitted before the normal
+`status("thinking")` event so the UI can show a subtle **"Compacting conversation…"**
+indicator. The indicator is removed automatically when the thinking phase begins.
 
 ### 4.2 Configuration
 
@@ -242,7 +314,7 @@ requests>=2.31.0         # HTTP client for Ollama API
 
 ## 5. Runtime - Interactive Agent
 
-**File**: `run_agent.sh` or `python agent.py`
+**File**: `python agent.py`
 
 ### 5.1 Startup Flow
 
@@ -355,7 +427,6 @@ agent-lab/
 │
 ├── agent/                        # Python LangChain Agent
 │   ├── agent.py                 # Main implementation (160 lines)
-│   ├── run_agent.sh             # Execution script
 │   ├── requirements.txt          # Python dependencies
 │   ├── .env                     # Agent configuration
 │   ├── README.md                # Agent documentation
@@ -529,12 +600,11 @@ docker-compose restart db
 - [x] PDF ingestion pipeline
 - [x] Knowledge base with xVA documents
 
-### Phase 3 (Future)
-- [ ] Streaming responses
-- [ ] Function calling / tool use
-- [ ] Multi-modal capabilities
-- [ ] Web UI interface
-- [ ] REST API server mode
+### Phase 3 (Current): ✅ Complete
+- [x] Streaming responses (token streaming, reasoning stream)
+- [x] Web UI interface (WebSocket, Markdown, dark mode, session history)
+- [x] Function calling / tool use (`render_dashboard`, RAG search)
+- [x] Financial dashboard board panel (Chart.js, tables, KPI cards in sandboxed iframe)
 
 ## 14. Quick Reference Commands
 
@@ -547,7 +617,6 @@ docker-compose exec db psql   # Connect to PostgreSQL
 # Agent
 cd /Users/lewisgong/code/agent-lab/agent
 python agent.py               # Run agent
-bash run_agent.sh            # Run via script
 
 # Testing
 python test_agent.py         # Connection test

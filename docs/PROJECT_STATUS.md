@@ -28,8 +28,8 @@ A comprehensive RAG (Retrieval Augmented Generation) pipeline for financial deri
   - Commands: ingest, list, delete
   - Supports batch processing
   - Provider selection (Ollama/OpenAI)
-  
-- `run_agent.sh` - Shell script to run agent interactively
+
+- `agent.py` - Interactive agent entry point
 
 #### 3. **Test Suite** (12 test files, 58+ tests)
 
@@ -48,16 +48,17 @@ A comprehensive RAG (Retrieval Augmented Generation) pipeline for financial deri
 
 **Total**: 44+ xVA tests, all passing ✅
 
-#### 4. **Documentation** (7 files, ~70 KB)
+#### 4. **Documentation** (8 files)
 
 | File | Purpose | Size |
 |------|---------|------|
-| README.md | Project overview | 7 KB |
 | QUICKSTART.md | Quick setup guide | 6 KB |
 | ARCHITECTURE.md | System design & diagrams | 17 KB |
 | AGENT.md | Agent functionality | 11 KB |
 | CLI_USAGE.md | CLI tool documentation | 13 KB |
-| PROJECT_SUMMARY.md | Detailed project breakdown | 9 KB |
+| INDEX.md | Documentation navigator | 4 KB |
+| PROJECT_STATUS.md | Detailed project breakdown and current status | 13 KB |
+| WEB_UI.md | Browser UI guide | 8 KB |
 | XVA_RAG_TESTING.md | xVA testing guide | 8 KB |
 
 #### 5. **Demo Scripts & Examples**
@@ -77,7 +78,7 @@ A comprehensive RAG (Retrieval Augmented Generation) pipeline for financial deri
 | Test Files | 12 |
 | Test Cases | 58+ |
 | Pass Rate | 100% ✅ |
-| Documentation Files | 7 |
+| Documentation Files | 8 |
 | Total Code Lines | 2,000+ |
 | Total Test Lines | 1,000+ |
 
@@ -159,18 +160,18 @@ agent-lab/
 │   ├── pdf_ingester.py            # PDF processing
 │   ├── rag_retriever.py           # Vector search
 │   ├── ingest_pdf.py              # CLI tool
-│   ├── run_agent.sh               # Agent runner
 │   ├── demo_xva_rag.py            # Examples
 │   ├── test_*.py                  # 12 test files
 │   └── requirements.txt           # Dependencies
 │
 ├── docs/                           # Documentation
-│   ├── README.md                  # Overview
+│   ├── INDEX.md                   # Documentation navigator
 │   ├── QUICKSTART.md             # Quick setup
 │   ├── ARCHITECTURE.md           # System design
 │   ├── AGENT.md                  # Agent docs
 │   ├── CLI_USAGE.md              # CLI guide
-│   ├── PROJECT_SUMMARY.md        # Detailed summary
+│   ├── PROJECT_STATUS.md         # Detailed status
+│   ├── WEB_UI.md                 # Browser UI guide
 │   └── XVA_RAG_TESTING.md        # Test documentation
 │
 ├── init-scripts/

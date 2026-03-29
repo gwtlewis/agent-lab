@@ -6,12 +6,12 @@ A Docker-based development environment for PostgreSQL with pgvector vector datab
 
 All documentation has been organized in the `docs/` directory:
 
-- **[docs/README.md](docs/README.md)** - Main project documentation and database setup
+- **[docs/INDEX.md](docs/INDEX.md)** - Main documentation navigator and entry point
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and design
 - **[docs/AGENT.md](docs/AGENT.md)** - AI Agent documentation and usage guide
 - **[docs/QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide
-- **[docs/PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Project summary and overview
-- **[docs/COPILOT_INSTRUCTIONS.md](docs/COPILOT_INSTRUCTIONS.md)** - Copilot workspace instructions
+- **[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)** - Project summary, metrics, and current status
+- **[docs/WEB_UI.md](docs/WEB_UI.md)** - Browser UI guide and behavior notes
 
 ## 🚀 Quick Start
 
@@ -26,7 +26,7 @@ cd agent
 python agent.py
 ```
 
-For detailed instructions, see [docs/README.md](docs/README.md).
+For detailed instructions, see [docs/INDEX.md](docs/INDEX.md).
 
 ## 📦 Project Structure
 
@@ -45,7 +45,9 @@ agent-lab/
 
 | Component | Location |
 |-----------|----------|
-| Database Setup | [docs/README.md](docs/README.md) |
+| Documentation Index | [docs/INDEX.md](docs/INDEX.md) |
+| Database Setup | [docs/QUICKSTART.md](docs/QUICKSTART.md) |
 | Agent Docs | [docs/AGENT.md](docs/AGENT.md) |
+| Project Status | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) |
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Getting Started | [docs/QUICKSTART.md](docs/QUICKSTART.md) |

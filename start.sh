@@ -42,7 +42,7 @@ echo "  ────────────────────────
 echo ""
 
 cd "$AGENT_DIR"
-exec "$VENV/bin/python" -m uvicorn web_server:app \
+exec "$VENV/bin/python" -m uvicorn server.web_server:app \
   --host 127.0.0.1 \
   --port "$WEB_PORT" \
   --log-level info

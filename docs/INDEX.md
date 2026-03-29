@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated**: 2026-03-22
+**Last Updated**: 2026-03-29
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 🚀 Getting Started
 - **[QUICKSTART.md](QUICKSTART.md)** – Setup guide; launch web UI with `./start.sh`
-- **[WEB_UI.md](WEB_UI.md)** – Browser chat UI, WebSocket protocol, Markdown rendering ⭐ new
+- **[WEB_UI.md](WEB_UI.md)** – Browser chat UI, WebSocket protocol, Markdown rendering, dashboard board panel ⭐ new
 
 ### 🏗️ System Design
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** – System architecture & diagrams
@@ -17,6 +17,9 @@
 ### 🛠️ Implementation Guides
 - **[CLI_USAGE.md](CLI_USAGE.md)** – Command-line tool documentation
 - **[XVA_RAG_TESTING.md](XVA_RAG_TESTING.md)** – RAG testing guide & test suite
+
+### 📊 Project State
+- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** – Current status, metrics, and project overview
 
 ---
 
@@ -29,6 +32,7 @@
 | ARCHITECTURE.md | System design | Developers/Architects |
 | AGENT.md | Agent API, streaming, reasoning | Developers |
 | CLI_USAGE.md | CLI tools | Users/Developers |
+| PROJECT_STATUS.md | Current project state | Managers/Developers |
 | XVA_RAG_TESTING.md | RAG & testing | QA/Developers |
 
 ---
@@ -59,10 +63,10 @@ Edit `agent/.env`: set `LLM_PROVIDER=openai` and `OPENAI_API_KEY=sk-…`
 
 | Metric | Value |
 |---|---|
-| Documentation files | 7 markdown files |
-| Core modules | `agent.py`, `web_server.py`, `event_model.py`, `agent_with_rag.py`, `ingest_pdf.py` |
-| Test files | 12 |
-| Tests passing | 153 (7 skipped – require PDF env var) |
+| Documentation files | 8 markdown files |
+| Core modules | `agent.py`, `web_server.py`, `event_model.py`, `agent_with_rag.py`, `ingest_pdf.py`, `tools/dashboard.py` |
+| Test files | 13 |
+| Unit tests passing | 94 (mocked, no Ollama/DB required) |
 | UI test coverage | 33 headless Playwright tests |
-| Static assets | marked.js + DOMPurify vendored (no CDN dependency) |
+| Static assets | marked.js + DOMPurify + Chart.js 4.4 vendored (no CDN dependency) |
 

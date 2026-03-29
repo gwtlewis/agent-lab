@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Agent Lab</title>
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg" />
+  <link rel="stylesheet" href="/static/vendor/github-dark.min.css" />
+  <link rel="stylesheet" href="/static/vendor/katex.min.css" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -11,10 +14,20 @@
   <header class="header">
     <div class="header-inner">
       <div class="header-title">
-        <span class="app-icon">◎</span>
+        <span class="app-icon">
+          <img src="/static/icon.svg" width="24" height="24" alt="Agent Lab Icon" />
+        </span>
         <span class="app-name">Agent Lab</span>
       </div>
       <div class="header-meta">
+        <label class="theme-select-wrap" for="theme-select" aria-label="Theme mode">
+          <span class="theme-select-label">Theme</span>
+          <select id="theme-select" class="theme-select">
+            <option value="auto">Auto</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
         <span id="provider-badge" class="badge badge--neutral">—</span>
         <span id="status-dot" class="status-dot status-dot--disconnected" title="Disconnected"></span>
       </div>
@@ -24,23 +37,37 @@
   <!-- ── Main layout ─────────────────────────────────────────────────────── -->
   <main class="main">
 
-    <!-- Transcript -->
-    <section id="transcript" class="transcript" role="log" aria-live="polite" aria-label="Conversation">
-      <div class="transcript-empty" id="empty-state">
-        <div class="empty-icon">◎</div>
-        <p class="empty-title">How can I help?</p>
-        <p class="empty-sub">Start a conversation below.</p>
-      </div>
-    </section>
+    <!-- Content row: transcript (left) + board panel (right, hidden by default) -->
+    <div class="content-row" id="content-row">
 
-    <!-- Reasoning panel (collapsible) -->
-    <aside id="reasoning-panel" class="reasoning-panel reasoning-panel--hidden" aria-label="Model reasoning">
-      <button class="reasoning-toggle" id="reasoning-toggle" aria-expanded="false">
-        <span class="reasoning-toggle-label">Reasoning</span>
-        <span class="reasoning-toggle-chevron">›</span>
-      </button>
-      <div class="reasoning-body" id="reasoning-body"></div>
-    </aside>
+      <!-- Transcript -->
+      <section id="transcript" class="transcript" role="log" aria-live="polite" aria-label="Conversation">
+        <div class="transcript-empty" id="empty-state">
+          <div class="empty-icon">
+            <img src="/static/icon.svg" width="48" height="48" alt="Agent Lab Icon" />
+          </div>
+          <p class="empty-title">How can I help?</p>
+          <p class="empty-sub">Start a conversation below.</p>
+          <div class="starter-prompts">
+            <button class="btn btn--starter" type="button">Summarize a document</button>
+            <button class="btn btn--starter" type="button">Write a Python script</button>
+            <button class="btn btn--starter" type="button">Explain neural networks</button>
+            <button class="btn btn--starter" type="button">Draw a CVA vs DVA comparison chart</button>
+            <button class="btn btn--starter" type="button">Show a portfolio risk table</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Board panel: shown when agent calls render_dashboard -->
+      <aside id="board-panel" class="board-panel" hidden>
+        <div class="board-header">
+          <span class="board-title">Dashboard</span>
+          <button id="board-close-btn" class="btn btn--ghost btn--small" aria-label="Close dashboard">✕</button>
+        </div>
+        <iframe id="board-frame" class="board-frame" sandbox="allow-scripts" title="Dashboard"></iframe>
+      </aside>
+
+    </div><!-- /.content-row -->
 
     <!-- Input area -->
     <div class="input-area">
@@ -70,7 +97,7 @@
         <button id="clear-btn" class="btn btn--ghost btn--small">Clear conversation</button>
         <label class="reasoning-toggle-label-inline">
           <input type="checkbox" id="reasoning-checkbox" checked />
-          Show reasoning
+          Deep Thinking
         </label>
       </div>
     </div>
@@ -78,6 +105,8 @@
 
   <script src="/static/vendor/marked.min.js"></script>
   <script src="/static/vendor/purify.min.js"></script>
+  <script src="/static/vendor/katex.min.js"></script>
+  <script src="/static/vendor/highlight.min.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
